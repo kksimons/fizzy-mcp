@@ -1,0 +1,46 @@
+#!/bin/sh
+# fizzy-mcp launcher.
+#
+# MCP clients launched from the macOS GUI (bit, Claude Desktop, etc.) run with a
+# minimal PATH that typically omits /opt/homebrew/bin, ~/.nvm, ~/.fnm, ~/.volta,
+# so a bare `node` command can't be found ("No such file or directory"). This
+# wrapper resolves node itself, then execs the server. Point your client at this
+# file as the command (no separate `node` command needed).
+set -e
+
+DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ENTRY="$DIR/dist/index.js"
+
+# 1. Prefer whatever `node` is on the (possibly rich) PATH.
+NODE="$(command -v node 2>/dev/null || true)"
+
+# 2. Fall back to well-known install locations for headless/GUI environments.
+#    (nvm/fnm expose node via PATH mutation, so we only probe their stable
+#    default symlinks; ~/.bun/bin/bun is intentionally omitted — this build
+#    targets node + @effect/platform-node and Bun's node-compat can corrupt the
+#    stdio JSON-RPC stream.)
+if [ -z "$NODE" ]; then
+  for c in \
+    /opt/homebrew/bin/node \
+    /usr/local/bin/node \
+    "$HOME/.volta/bin/node" \
+    "$HOME/.fnm/aliases/default/bin/node" \
+    "$HOME/.proto/shims/node"; do
+    if [ -x "$c" ]; then
+      NODE="$c"
+      break
+    fi
+  done
+fi
+
+if [ -z "$NODE" ]; then
+  echo "fizzy-mcp: could not find node. Install Node.js or add it to PATH." >&2
+  exit 127
+fi
+
+if [ ! -f "$ENTRY" ]; then
+  echo "fizzy-mcp: built entry not found at $ENTRY — run 'bun run build' first." >&2
+  exit 1
+fi
+
+exec "$NODE" "$ENTRY"
