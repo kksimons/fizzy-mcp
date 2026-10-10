@@ -21,7 +21,7 @@
     "build": "rm -rf dist && tsgo -p tsconfig.json",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "typecheck": "tsgo --noEmit -p tsconfig.json",
+    "typecheck": "bun --check",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
